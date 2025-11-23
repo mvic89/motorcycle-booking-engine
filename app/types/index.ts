@@ -8,7 +8,9 @@ export interface RepairShop {
   phone: string;
   email: string;
   rating?: number;
-  isDealer: boolean;
+  is_dealer: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface FilterOptions {

@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { FilterOptions } from './types';
-import { sampleRepairShops } from './data/sampleShops';
+import { useState, useMemo, useEffect } from 'react';
+import { FilterOptions, RepairShop } from './types';
+import { supabase } from '../lib/supabase';
 
 export default function Home() {
+  const [repairShops, setRepairShops] = useState<RepairShop[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterOptions>({
     searchQuery: '',
     country: '',
@@ -12,25 +15,51 @@ export default function Home() {
     brand: '',
   });
 
+  // Fetch repair shops from Supabase
+  useEffect(() => {
+    async function fetchRepairShops() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('repair_shops')
+          .select('*')
+          .order('name', { ascending: true });
+
+        if (error) throw error;
+
+        setRepairShops(data || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching repair shops:', err);
+        setError('Failed to load repair shops. Please check your Supabase connection.');
+        setRepairShops([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchRepairShops();
+  }, []);
+
   // Extract unique values for filter dropdowns
   const countries = useMemo(() =>
-    Array.from(new Set(sampleRepairShops.map(shop => shop.country))).sort(),
-    []
+    Array.from(new Set(repairShops.map((shop: RepairShop) => shop.country))).sort(),
+    [repairShops]
   );
 
   const cities = useMemo(() =>
-    Array.from(new Set(sampleRepairShops.map(shop => shop.city))).sort(),
-    []
+    Array.from(new Set(repairShops.map((shop: RepairShop) => shop.city))).sort(),
+    [repairShops]
   );
 
   const brands = useMemo(() =>
-    Array.from(new Set(sampleRepairShops.flatMap(shop => shop.brands))).sort(),
-    []
+    Array.from(new Set(repairShops.flatMap((shop: RepairShop) => shop.brands))).sort(),
+    [repairShops]
   );
 
   // Filter repair shops based on current filters
   const filteredShops = useMemo(() => {
-    return sampleRepairShops.filter(shop => {
+    return repairShops.filter((shop: RepairShop) => {
       const matchesSearch = filters.searchQuery === '' ||
         shop.name.toLowerCase().includes(filters.searchQuery.toLowerCase());
 
@@ -40,7 +69,7 @@ export default function Home() {
 
       return matchesSearch && matchesCountry && matchesCity && matchesBrand;
     });
-  }, [filters]);
+  }, [filters, repairShops]);
 
   const handleFilterChange = (key: keyof FilterOptions, value: string) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -70,6 +99,31 @@ export default function Home() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <div className="flex items-start">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-red-800">Error</h3>
+                <p className="mt-1 text-sm text-red-700">{error}</p>
+                <p className="mt-2 text-sm text-red-600">
+                  Make sure you have added your Supabase credentials to the .env.local file.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+              <p className="mt-4 text-gray-600">Loading repair shops...</p>
+            </div>
+          </div>
+        ) : (
+          <>
         {/* Search and Filters Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <div className="space-y-4">
@@ -175,7 +229,7 @@ export default function Home() {
               <div className="mb-4">
                 <div className="flex items-start justify-between">
                   <h3 className="text-lg font-semibold text-gray-900">{shop.name}</h3>
-                  {shop.isDealer && (
+                  {shop.is_dealer && (
                     <span className="px-2 py-1 text-xs font-medium text-blue-700 bg-blue-100 rounded">
                       Dealer
                     </span>
@@ -228,7 +282,7 @@ export default function Home() {
         </div>
 
         {/* No Results Message */}
-        {filteredShops.length === 0 && (
+        {filteredShops.length === 0 && !loading && (
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-12 text-center">
             <p className="text-gray-600 text-lg">No repair shops found matching your criteria.</p>
             <button
@@ -238,6 +292,8 @@ export default function Home() {
               Reset Filters
             </button>
           </div>
+        )}
+          </>
         )}
       </main>
     </div>
