@@ -277,6 +277,20 @@ export default function Home() {
                   ))}
                 </div>
               </div>
+
+              {/* Google Maps Button */}
+              {shop.latitude && shop.longitude && (
+                <div className="mt-4">
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(shop.name)}&query_place_id=ChIJ&center=${shop.latitude},${shop.longitude}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block w-full px-4 py-2 text-sm font-medium text-center text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                  >
+                    View on Google Maps
+                  </a>
+                </div>
+              )}
             </div>
           ))}
         </div>

@@ -58,17 +58,32 @@ The `repair_shops` table has the following structure:
 | country | TEXT | Country location |
 | city | TEXT | City location |
 | address | TEXT | Full address |
+| latitude | DECIMAL(10,8) | GPS latitude for Google Maps |
+| longitude | DECIMAL(11,8) | GPS longitude for Google Maps |
 | brands | TEXT[] | Array of supported motorcycle brands |
-| phone | TEXT | Contact phone |
-| email | TEXT | Contact email |
+| phone | TEXT | Contact phone (optional) |
+| email | TEXT | Contact email (optional) |
+| website | TEXT | Business website (optional) |
 | rating | DECIMAL(2,1) | Rating from 0-5 |
 | is_dealer | BOOLEAN | Whether it's an official dealer |
+| osm_id | TEXT | OpenStreetMap ID (prevents duplicates) |
+| osm_type | TEXT | OSM element type (node/way/relation) |
 | created_at | TIMESTAMP | Creation timestamp |
 | updated_at | TIMESTAMP | Last update timestamp |
 
 ## Adding New Repair Shops
 
-You can add new repair shops through:
+### Option 1: Automated Import from OpenStreetMap (Recommended)
+
+Import verified motorcycle repair shops from OpenStreetMap for all EU countries:
+
+```bash
+npm run extract-osm
+```
+
+See [QUICK_START.md](QUICK_START.md) for a quick guide or [OSM_DATA_EXTRACTION_GUIDE.md](OSM_DATA_EXTRACTION_GUIDE.md) for detailed instructions.
+
+### Option 2: Manual Entry
 
 1. **Supabase Dashboard**:
    - Go to **Table Editor**
@@ -77,15 +92,18 @@ You can add new repair shops through:
 
 2. **SQL Query**:
    ```sql
-   INSERT INTO repair_shops (name, country, city, address, brands, phone, email, rating, is_dealer)
+   INSERT INTO repair_shops (name, country, city, address, latitude, longitude, brands, phone, email, website, rating, is_dealer)
    VALUES (
      'Shop Name',
      'Country',
      'City',
-     'Address',
+     'Street Address 123',
+     48.1351,  -- latitude
+     11.5820,  -- longitude
      ARRAY['Brand1', 'Brand2'],
      '+00 00 000000',
      'email@example.com',
+     'https://example.com',
      4.5,
      false
    );

@@ -5,19 +5,26 @@ CREATE TABLE IF NOT EXISTS repair_shops (
   country TEXT NOT NULL,
   city TEXT NOT NULL,
   address TEXT NOT NULL,
+  latitude DECIMAL(10,8),
+  longitude DECIMAL(11,8),
   brands TEXT[] NOT NULL DEFAULT '{}',
-  phone TEXT NOT NULL,
-  email TEXT NOT NULL,
+  phone TEXT,
+  email TEXT,
+  website TEXT,
   rating DECIMAL(2,1) CHECK (rating >= 0 AND rating <= 5),
   is_dealer BOOLEAN NOT NULL DEFAULT false,
+  osm_id TEXT,
+  osm_type TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Create an index on country and city for faster filtering
+-- Create indexes for faster filtering
 CREATE INDEX IF NOT EXISTS idx_repair_shops_country ON repair_shops(country);
 CREATE INDEX IF NOT EXISTS idx_repair_shops_city ON repair_shops(city);
 CREATE INDEX IF NOT EXISTS idx_repair_shops_brands ON repair_shops USING GIN(brands);
+CREATE INDEX IF NOT EXISTS idx_repair_shops_osm_id ON repair_shops(osm_id);
+CREATE INDEX IF NOT EXISTS idx_repair_shops_location ON repair_shops(latitude, longitude);
 
 -- Enable Row Level Security (RLS)
 ALTER TABLE repair_shops ENABLE ROW LEVEL SECURITY;
@@ -27,21 +34,20 @@ CREATE POLICY "Allow public read access" ON repair_shops
   FOR SELECT
   USING (true);
 
--- Create a policy for inserting (you can modify this based on your auth requirements)
--- For now, this allows authenticated users to insert
-CREATE POLICY "Allow authenticated insert" ON repair_shops
+-- Create a policy for inserting - allows authenticated users and service role (for data imports)
+CREATE POLICY "Allow authenticated and service role insert" ON repair_shops
   FOR INSERT
-  WITH CHECK (auth.role() = 'authenticated');
+  WITH CHECK (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
--- Create a policy for updating (you can modify this based on your auth requirements)
-CREATE POLICY "Allow authenticated update" ON repair_shops
+-- Create a policy for updating - allows authenticated users and service role
+CREATE POLICY "Allow authenticated and service role update" ON repair_shops
   FOR UPDATE
-  USING (auth.role() = 'authenticated');
+  USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
--- Create a policy for deleting (you can modify this based on your auth requirements)
-CREATE POLICY "Allow authenticated delete" ON repair_shops
+-- Create a policy for deleting - allows authenticated users and service role
+CREATE POLICY "Allow authenticated and service role delete" ON repair_shops
   FOR DELETE
-  USING (auth.role() = 'authenticated');
+  USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
 
 -- Create a function to update the updated_at timestamp
 CREATE OR REPLACE FUNCTION update_updated_at_column()
